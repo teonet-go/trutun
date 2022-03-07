@@ -1,4 +1,15 @@
-// TRU=tru1 && sudo ip addr add 10.1.1.10/24 dev $TRU && sudo ip link set up dev $TRU
+// TRU vpn execute and configuration example
+//
+// Create vpn tunnel between two hosts
+//
+// Server:
+//   TRU=tru1 && sudo go run ./cmd/teovpn -name=$TRU -p=9000 -loglevel=Debug -stat -hotkey
+//   TRU=tru1 && sudo ip addr add 10.1.1.10/24 dev $TRU && sudo ip link set up dev $TRU
+//
+// Client:
+//   TRU=tru2 && sudo go run ./cmd/teovpn -name=$TRU -a=host.name:9000 -loglevel=Debug -stat -hotkey
+//   TRU=tru2 && sudo ip addr add 10.1.1.11/24 dev $TRU && sudo ip link set up dev $TRU
+//
 
 package main
 
