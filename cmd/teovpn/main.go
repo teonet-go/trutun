@@ -79,8 +79,8 @@ func (tv *TeoVpn) Tru(port int, params ...interface{}) (t *tru.Tru, err error) {
 				log.Debug.Println("got error in main reader:", err)
 				return
 			}
-			log.Debug.Printf("got %d byte from %s, id %d: % x ifcs: %v\n",
-				pac.Len(), ch.Addr().String(), pac.ID(), pac.Data(), tv.ifce)
+			log.Debug.Printf("got %d byte from %s, id %d: % x\n",
+				pac.Len(), ch.Addr().String(), pac.ID(), pac.Data())
 
 			// TODO: wait ifce ready
 			for tv.ifce == nil {
