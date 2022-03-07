@@ -3,8 +3,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/kirill-scherba/tru"
 	"github.com/kirill-scherba/tru/teolog"
@@ -32,27 +34,42 @@ func main() {
 		panic("set name parameter")
 	}
 
-	// Connect to tru
-	var ifce *water.Interface
-	t, err := Tru(*port, ifce, tru.Stat(*stat), tru.Hotkey(*hotkey),
-		log, *loglevel, teolog.Logfilter(*logfilter))
+	_, err := NewTeoVpn()
 	if err != nil {
-		panic("can't create tru, error: " + err.Error())
+		panic(err.Error())
 	}
-	defer t.Close()
-
-	// Create tap interface
-	_, err = Interface(*name, t)
-	if err != nil {
-		panic("can't create interface, error: " + err.Error())
-	}
+	select {}
 }
 
 type TeoVpn struct {
+	tru  *tru.Tru
+	ifce *water.Interface
+}
+
+func NewTeoVpn() (tv *TeoVpn, err error) {
+
+	tv = new(TeoVpn)
+
+	// Create tap interface
+	tv.ifce, err = tv.Interface(*name)
+	if err != nil {
+		err = errors.New("can't create interface, error: " + err.Error())
+		return
+	}
+
+	// Connect to tru
+	tv.tru, err = tv.Tru(*port, tru.Stat(*stat), tru.Hotkey(*hotkey),
+		log, *loglevel, teolog.Logfilter(*logfilter))
+	if err != nil {
+		err = errors.New("can't create tru, error: " + err.Error())
+		return
+	}
+
+	return
 }
 
 // Tru create new tru connection
-func Tru(port int, ifce *water.Interface, params ...interface{}) (t *tru.Tru, err error) {
+func (tv *TeoVpn) Tru(port int, params ...interface{}) (t *tru.Tru, err error) {
 
 	// Create server connection and start listen incominng packets
 	t, err = tru.New(port, append(params,
@@ -62,9 +79,14 @@ func Tru(port int, ifce *water.Interface, params ...interface{}) (t *tru.Tru, er
 				log.Debug.Println("got error in main reader:", err)
 				return
 			}
-			log.Debugv.Printf("got %d byte from %s, id %d: %s\n",
-				pac.Len(), ch.Addr().String(), pac.ID(), pac.Data())
-			ifce.Write(pac.Data())
+			log.Debug.Printf("got %d byte from %s, id %d: % x ifcs: %v\n",
+				pac.Len(), ch.Addr().String(), pac.ID(), pac.Data(), tv.ifce)
+
+			// TODO: wait ifce ready
+			for tv.ifce == nil {
+				time.Sleep(10 * time.Millisecond)
+			}
+			tv.ifce.Write(pac.Data())
 			return
 		},
 	)...)
@@ -99,7 +121,7 @@ func Tru(port int, ifce *water.Interface, params ...interface{}) (t *tru.Tru, er
 }
 
 // Interface
-func Interface(name string, t *tru.Tru) (ifce *water.Interface, err error) {
+func (tv *TeoVpn) Interface(name string) (ifce *water.Interface, err error) {
 	config := water.Config{
 		DeviceType: water.TAP,
 	}
@@ -112,20 +134,28 @@ func Interface(name string, t *tru.Tru) (ifce *water.Interface, err error) {
 	}
 
 	// Read from interface and send to tru channels
-	var frame ethernet.Frame
-	for {
-		frame.Resize(1500)
-		n, err := ifce.Read([]byte(frame))
-		if err != nil {
-			log.Error.Fatal(err)
-		}
-		frame = frame[:n]
-		log.Debug.Printf("Dst: %s\n", frame.Destination())
-		log.Debug.Printf("Src: %s\n", frame.Source())
-		log.Debug.Printf("Ethertype: % x\n", frame.Ethertype())
-		log.Debug.Printf("Payload: % x\n", frame.Payload())
+	go func() {
+		var frame ethernet.Frame
+		for {
+			frame.Resize(1500)
+			n, err := ifce.Read([]byte(frame))
+			if err != nil {
+				log.Error.Fatal(err)
+			}
+			frame = frame[:n]
+			log.Debug.Printf("Dst: %s\n", frame.Destination())
+			log.Debug.Printf("Src: %s\n", frame.Source())
+			log.Debug.Printf("Ethertype: % x\n", frame.Ethertype())
+			log.Debug.Printf("Payload: % x\n", frame.Payload())
 
-		// Resend frame to all channels
-		t.ForEachChannel(func(ch *tru.Channel) { ch.WriteTo(frame) })
-	}
+			// Resend frame to all channels
+			// TODO: wait tru ready
+			for tv.tru == nil {
+				time.Sleep(10 * time.Millisecond)
+			}
+			tv.tru.ForEachChannel(func(ch *tru.Channel) { ch.WriteTo(frame) })
+		}
+	}()
+
+	return
 }
