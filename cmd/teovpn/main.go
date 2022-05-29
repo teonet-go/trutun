@@ -1,6 +1,6 @@
-// TRU vpn execute and configuration example
+// Teonet TRU tunnel client/server application
 //
-// Create vpn tunnel between two hosts
+// Create regular tunnel between two hosts
 //
 // Server:
 //   TRU=tru1 && sudo go run ./cmd/teovpn -name=$TRU -p=9000 -loglevel=Debug -stat -hotkey
@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kirill-scherba/tru"
-	"github.com/kirill-scherba/tru/teolog"
+	"github.com/teonet-go/tru"
+	"github.com/teonet-go/tru/teolog"
 	"github.com/songgao/packets/ethernet"
 	"github.com/songgao/water"
 )
@@ -37,7 +37,7 @@ var log = teolog.New()
 
 func main() {
 	// Print logo message
-	fmt.Println("TRU based vpn application ver. 0.0.1")
+	fmt.Println("Teonet TRU tunnel application ver. 0.0.2")
 
 	// Parse flags
 	flag.Parse()
