@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Teonet TRU tunnel client/server application. Creates regular tunnel between 
+// Teonet TRU tunnel client/server application. Creates regular tunnel between
 // hosts.
 package main
 
