@@ -1,4 +1,4 @@
-module github.com/kirill-scherba/trutun
+module github.com/teonet-go/trutun
 
 // replace github.com/teonet-go/tru => ../tru
 
