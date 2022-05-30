@@ -1,89 +1,97 @@
-// Teonet TRU tunnel client/server application
-//
-// Create regular tunnel between two hosts
-//
-// Server:
-//   TRU=tru1 && sudo go run ./cmd/teovpn -name=$TRU -p=9000 -loglevel=Debug -stat -hotkey
-//   TRU=tru1 && sudo ip addr add 10.1.1.10/24 dev $TRU && sudo ip link set up dev $TRU
-//
-// Client:
-//   TRU=tru2 && sudo go run ./cmd/teovpn -name=$TRU -a=host.name:9000 -loglevel=Debug -stat -hotkey
-//   TRU=tru2 && sudo ip addr add 10.1.1.11/24 dev $TRU && sudo ip link set up dev $TRU
-//
+// Copyright 2022 Kirill Scherba <kirill@scherba.ru>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
+// Teonet TRU tunnel client/server application. Creates regular tunnel between 
+// hosts.
 package main
 
 import (
 	"errors"
 	"flag"
 	"fmt"
+	"os/exec"
+	"strings"
 	"time"
 
-	"github.com/teonet-go/tru"
-	"github.com/teonet-go/tru/teolog"
 	"github.com/songgao/packets/ethernet"
 	"github.com/songgao/water"
+	"github.com/teonet-go/tru"
+	"github.com/teonet-go/tru/teolog"
 )
 
-var name = flag.String("name", "", "interface name")
+const (
+	appShor    = "trutun"
+	appName    = "Tunnel application"
+	appVersion = "0.0.2"
+)
+
+var name = flag.String("name", appShor, "interface name")
 var port = flag.Int("p", 0, "local port number")
 var addr = flag.String("a", "", "remote address to connect to")
-var loglevel = flag.String("loglevel", "", "set log level")
+var loglevel = flag.String("loglevel", "connect", "set log level")
 var logfilter = flag.String("logfilter", "", "set log filter")
 var stat = flag.Bool("stat", false, "print statistic")
 var hotkey = flag.Bool("hotkey", false, "start hotkey menu")
+var postcon = flag.String("pc", "", "post connection commands")
 
 var log = teolog.New()
 
 func main() {
 	// Print logo message
-	fmt.Println("Teonet TRU tunnel application ver. 0.0.2")
+	fmt.Println(tru.Logo(appName, appVersion))
 
 	// Parse flags
 	flag.Parse()
 	if len(*name) == 0 {
-		panic("set name parameter")
+		flag.Usage()
+		return
 	}
 
-	_, err := NewTeoVpn()
+	// Start TRU tunnel
+	_, err := NewTruTun()
 	if err != nil {
 		panic(err.Error())
 	}
 	select {}
 }
 
-type TeoVpn struct {
+type TruTun struct {
 	tru  *tru.Tru
 	ifce *water.Interface
 }
 
-func NewTeoVpn() (tv *TeoVpn, err error) {
+// Create new TRU tunnel
+func NewTruTun() (t *TruTun, err error) {
 
-	tv = new(TeoVpn)
+	t = new(TruTun)
 
 	// Create tap interface
-	tv.ifce, err = tv.Interface(*name)
+	t.ifce, err = t.Interface(*name)
 	if err != nil {
 		err = errors.New("can't create interface, error: " + err.Error())
 		return
 	}
 
 	// Connect to tru
-	tv.tru, err = tv.Tru(*port, tru.Stat(*stat), tru.Hotkey(*hotkey),
+	t.tru, err = t.Tru(*port, tru.Stat(*stat), tru.Hotkey(*hotkey),
 		log, *loglevel, teolog.Logfilter(*logfilter))
 	if err != nil {
 		err = errors.New("can't create tru, error: " + err.Error())
 		return
 	}
 
+	// Exec post connection commands
+	t.PostConnect(*postcon)
+
 	return
 }
 
 // Tru create new tru connection
-func (tv *TeoVpn) Tru(port int, params ...interface{}) (t *tru.Tru, err error) {
+func (t *TruTun) Tru(port int, params ...interface{}) (con *tru.Tru, err error) {
 
 	// Create server connection and start listen incominng packets
-	t, err = tru.New(port, append(params,
+	con, err = tru.New(port, append(params,
 		// Tru reader get all packets and resend it to interface
 		func(ch *tru.Channel, pac *tru.Packet, err error) (processed bool) {
 			if err != nil {
@@ -94,10 +102,10 @@ func (tv *TeoVpn) Tru(port int, params ...interface{}) (t *tru.Tru, err error) {
 				pac.Len(), ch.Addr().String(), pac.ID(), pac.Data())
 
 			// TODO: wait ifce ready
-			for tv.ifce == nil {
+			for t.ifce == nil {
 				time.Sleep(10 * time.Millisecond)
 			}
-			tv.ifce.Write(pac.Data())
+			t.ifce.Write(pac.Data())
 			return
 		},
 	)...)
@@ -115,7 +123,7 @@ func (tv *TeoVpn) Tru(port int, params ...interface{}) (t *tru.Tru, err error) {
 		var reconnect = make(chan interface{})
 		defer close(reconnect)
 		for {
-			if _, err := t.Connect(*addr, func(ch *tru.Channel, pac *tru.Packet,
+			if _, err := con.Connect(*addr, func(ch *tru.Channel, pac *tru.Packet,
 				err error) (processed bool) {
 				if err != nil {
 					reconnect <- nil
@@ -131,8 +139,8 @@ func (tv *TeoVpn) Tru(port int, params ...interface{}) (t *tru.Tru, err error) {
 	return
 }
 
-// Interface
-func (tv *TeoVpn) Interface(name string) (ifce *water.Interface, err error) {
+// Interface create tap interface
+func (t *TruTun) Interface(name string) (ifce *water.Interface, err error) {
 	config := water.Config{
 		DeviceType: water.TAP,
 	}
@@ -161,12 +169,30 @@ func (tv *TeoVpn) Interface(name string) (ifce *water.Interface, err error) {
 
 			// Resend frame to all channels
 			// TODO: wait tru ready
-			for tv.tru == nil {
+			for t.tru == nil {
 				time.Sleep(10 * time.Millisecond)
 			}
-			tv.tru.ForEachChannel(func(ch *tru.Channel) { ch.WriteTo(frame) })
+			t.tru.ForEachChannel(func(ch *tru.Channel) { ch.WriteTo(frame) })
 		}
 	}()
 
 	return
+}
+
+// PostConnect execute post connection os commands
+func (t *TruTun) PostConnect(commands string) {
+	if len(commands) == 0 {
+		return
+	}
+	com := strings.Split(commands, " ")
+	var arg []string
+	if len(com) > 1 {
+		arg = com[1:]
+	}
+
+	out, err := exec.Command(com[0], arg...).Output()
+	if err != nil {
+		log.Error.Println("can't execute post connection commands, err: ", err)
+	}
+	log.Debug.Printf("\n%s\n", out)
 }
