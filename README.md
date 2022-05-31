@@ -1,6 +1,6 @@
 # Teonet TRU tunnel
 
-Trutun creates secret tunnel by IP address using Teonet TRU transport. TRU create reliable, low latency and encrypted channel between connected peers.
+Trutun creates secret tunnel by IP address using Teonet [TRU](https://github.com/teonet-go/tru) transport. [TRU](https://github.com/teonet-go/tru) create reliable, low latency and encrypted channel between connected peers.
 
 [![GoDoc](https://godoc.org/github.com/teonet-go/trutun?status.svg)](https://godoc.org/github.com/teonet-go/trutun/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/teonet-go/trutun)](https://goreportcard.com/report/github.com/teonet-go/trutun)
