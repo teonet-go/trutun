@@ -23,7 +23,7 @@ import (
 const (
 	appShor    = "trutun"
 	appName    = "Tunnel application"
-	appVersion = "0.0.4"
+	appVersion = "0.0.5"
 )
 
 var name = flag.String("name", appShor, "interface name")
@@ -165,7 +165,8 @@ func (t *TruTun) Interface(name string) (ifce *water.Interface, err error) {
 			log.Debug.Printf("Dst: %s\n", frame.Destination())
 			log.Debug.Printf("Src: %s\n", frame.Source())
 			log.Debug.Printf("Ethertype: % x\n", frame.Ethertype())
-			log.Debug.Printf("Payload: % x\n", frame.Payload())
+			log.Debug.Printf("Payload len: % x\n", len(frame.Payload()))
+			log.Debugvv.Printf("Payload: % x\n", frame.Payload())
 
 			// Resend frame to all channels
 			// TODO: wait tru ready
