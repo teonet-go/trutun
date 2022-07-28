@@ -23,7 +23,7 @@ import (
 const (
 	appShor    = "trutun"
 	appName    = "Tunnel application"
-	appVersion = "0.0.6"
+	appVersion = "0.0.8"
 )
 
 var name = flag.String("name", appShor, "interface name")
@@ -34,6 +34,7 @@ var logfilter = flag.String("logfilter", "", "set log filter")
 var stat = flag.Bool("stat", false, "print statistic")
 var hotkey = flag.Bool("hotkey", false, "start hotkey menu")
 var postcon = flag.String("pc", "", "post connection commands")
+var datalen = flag.Int("datalen", 1024, "set max data len in created packets, 0 - maximum UDP len")
 
 var log = teolog.New()
 
@@ -74,8 +75,10 @@ func NewTruTun() (t *TruTun, err error) {
 	}
 
 	// Connect to tru
-	t.tru, err = t.Tru(*port, tru.Stat(*stat), tru.Hotkey(*hotkey),
-		log, *loglevel, teolog.Logfilter(*logfilter))
+	t.tru, err = t.Tru(
+		*port, tru.Stat(*stat), tru.Hotkey(*hotkey), log, *loglevel,
+		teolog.Logfilter(*logfilter), tru.MaxDataLenType(*datalen),
+	)
 	if err != nil {
 		err = errors.New("can't create tru, error: " + err.Error())
 		return
