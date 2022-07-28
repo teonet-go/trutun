@@ -23,7 +23,7 @@ import (
 const (
 	appShor    = "trutun"
 	appName    = "Tunnel application"
-	appVersion = "0.0.2"
+	appVersion = "0.0.4"
 )
 
 var name = flag.String("name", appShor, "interface name")
