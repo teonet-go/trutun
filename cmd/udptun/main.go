@@ -35,6 +35,7 @@ var logfilter = flag.String("logfilter", "", "set log filter")
 var stat = flag.Bool("stat", false, "print statistic")
 var hotkey = flag.Bool("hotkey", false, "start hotkey menu")
 var postcon = flag.String("pc", "", "post connection commands")
+var mtu = flag.Int("mtu", 1500, "set interface mtu")
 var datalen = flag.Int("datalen", 757, "set max data len in created packets, 0 - maximum UDP len")
 
 var log = teolog.New()
@@ -89,36 +90,13 @@ func NewUdpTun() (t *UdpTun, err error) {
 	}
 
 	// Exec post connection commands
-	t.PostConnect(*postcon)
+	t.PostConnect(*postcon, *mtu)
 
 	return
 }
 
 // Udp create new udp connection
 func (t *UdpTun) Udp(port int, params ...interface{}) (conn net.PacketConn, err error) {
-
-	// Create server connection and start listen incominng packets
-	// con, err = tru.New(port, append(params,
-	// 	// Tru reader get all packets and resend it to interface
-	// 	func(ch *tru.Channel, pac *tru.Packet, err error) (processed bool) {
-	// 		if err != nil {
-	// 			log.Debug.Println("got error in main reader:", err)
-	// 			return
-	// 		}
-	// 		log.Debug.Printf("got %d byte from %s, id %d, len %d\n",
-	// 			pac.Len(), ch.Addr().String(), pac.ID(), len(pac.Data()))
-
-	// 		// TODO: wait ifce ready
-	// 		for t.ifce == nil {
-	// 			time.Sleep(10 * time.Millisecond)
-	// 		}
-	// 		t.ifce.Write(pac.Data())
-	// 		return
-	// 	},
-	// )...)
-	// if err != nil {
-	// 	log.Error.Fatal("can't create tru, err: ", err)
-	// }
 
 	// Start listen udp port
 	conn, err = net.ListenPacket("udp", fmt.Sprintf(":%d", port))
@@ -165,24 +143,6 @@ func (t *UdpTun) Udp(port int, params ...interface{}) (conn net.PacketConn, err 
 		}
 	}()
 
-	// Connect to peer
-	// go func() {
-	// 	var reconnect = make(chan interface{})
-	// 	defer close(reconnect)
-	// 	for {
-	// 		if _, err := con.Connect(*addr, func(ch *tru.Channel, pac *tru.Packet,
-	// 			err error) (processed bool) {
-	// 			if err != nil {
-	// 				reconnect <- nil
-	// 			}
-	// 			return false
-	// 		}); err == nil {
-	// 			<-reconnect
-	// 		}
-	// 		log.Connect.Println("reconnect to", *addr)
-	// 	}
-	// }()
-
 	return
 }
 
@@ -225,12 +185,6 @@ func (t *UdpTun) Interface(name string) (ifce *water.Interface, err error) {
 			log.Debug.Printf("Src: %s\n", frame.Source())
 			log.Debug.Printf("Ethertype: % x\n", frame.Ethertype())
 			log.Debug.Printf("Payload len: %d\n", len(frame.Payload()))
-			// log.Debugvv.Printf("Payload: % x\n", frame.Payload())
-
-			// Resend frame to all channels
-			// t.udp.ForEachChannel(func(ch *tru.Channel) { ch.WriteTo(frame[:n]) })
-			// t.udp.WriteTo(frame[:n], t.addr)
-			// t.Write(frame[:n])
 
 			n, err = t.conn.WriteTo(frame[:n], *t.addr)
 			if err != nil {
@@ -245,10 +199,11 @@ func (t *UdpTun) Interface(name string) (ifce *water.Interface, err error) {
 }
 
 // PostConnect execute post connection os commands
-func (t *UdpTun) PostConnect(commands string) {
+func (t *UdpTun) PostConnect(commands string, mtu int) {
 	if len(commands) == 0 {
 		return
 	}
+	commands = fmt.Sprintf("%s %d", commands, mtu)
 	com := strings.Split(commands, " ")
 	var arg []string
 	if len(com) > 1 {
