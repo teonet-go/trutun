@@ -34,7 +34,7 @@ var logfilter = flag.String("logfilter", "", "set log filter")
 var stat = flag.Bool("stat", false, "print statistic")
 var hotkey = flag.Bool("hotkey", false, "start hotkey menu")
 var postcon = flag.String("pc", "", "post connection commands")
-var datalen = flag.Int("datalen", 1024, "set max data len in created packets, 0 - maximum UDP len")
+var datalen = flag.Int("datalen", 757, "set max data len in created packets, 0 - maximum UDP len")
 
 var log = teolog.New()
 
@@ -158,7 +158,7 @@ func (t *TruTun) Interface(name string) (ifce *water.Interface, err error) {
 	// Read from interface and send to tru channels
 	go func() {
 		var frame ethernet.Frame
-		frame.Resize(1500)
+		frame.Resize(1500 - 14)
 		for {
 			// frame.Resize(1500)
 			n, err := ifce.Read([]byte(frame))
