@@ -233,6 +233,10 @@ func (t *UdpTun) Interface(name string) (ifce *water.Interface, err error) {
 			// t.Write(frame[:n])
 
 			n, err = t.conn.WriteTo(frame[:n], *t.addr)
+			if err != nil {
+				fmt.Printf("write to %s error: %s\n", *t.addr, err)
+				continue
+			}
 			fmt.Printf("write %d byte to %s\n", n, *t.addr)
 		}
 	}()

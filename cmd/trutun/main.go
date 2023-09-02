@@ -159,7 +159,7 @@ func (t *TruTun) Interface(name string) (ifce *water.Interface, err error) {
 	// Read from interface and send to tru channels
 	go func() {
 		var frame ethernet.Frame
-		frame.Resize(1280)
+		frame.Resize(*mtu)
 		for {
 			// frame.Resize(1500)
 			n, err := ifce.Read([]byte(frame))
