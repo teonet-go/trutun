@@ -164,7 +164,7 @@ func (t *UdpTun) Interface(name string) (ifce *water.Interface, err error) {
 
 		// Create frame
 		var frame ethernet.Frame
-		frame.Resize(1500)
+		frame.Resize(*mtu)
 
 		// Read iface and resend frames to Udp
 		for {
