@@ -34,6 +34,7 @@ var logfilter = flag.String("logfilter", "", "set log filter")
 var stat = flag.Bool("stat", false, "print statistic")
 var hotkey = flag.Bool("hotkey", false, "start hotkey menu")
 var postcon = flag.String("pc", "", "post connection commands")
+var mtu = flag.Int("mtu", 1500, "set interface mtu")
 var datalen = flag.Int("datalen", 757, "set max data len in created packets, 0 - maximum UDP len")
 
 var log = teolog.New()
@@ -85,7 +86,7 @@ func NewTruTun() (t *TruTun, err error) {
 	}
 
 	// Exec post connection commands
-	t.PostConnect(*postcon)
+	t.PostConnect(*postcon, *mtu)
 
 	return
 }
@@ -158,7 +159,7 @@ func (t *TruTun) Interface(name string) (ifce *water.Interface, err error) {
 	// Read from interface and send to tru channels
 	go func() {
 		var frame ethernet.Frame
-		frame.Resize(1500)
+		frame.Resize(1280)
 		for {
 			// frame.Resize(1500)
 			n, err := ifce.Read([]byte(frame))
@@ -185,10 +186,11 @@ func (t *TruTun) Interface(name string) (ifce *water.Interface, err error) {
 }
 
 // PostConnect execute post connection os commands
-func (t *TruTun) PostConnect(commands string) {
+func (t *TruTun) PostConnect(commands string, mtu int) {
 	if len(commands) == 0 {
 		return
 	}
+	commands = fmt.Sprintf("%s %d", commands, mtu)
 	com := strings.Split(commands, " ")
 	var arg []string
 	if len(com) > 1 {
