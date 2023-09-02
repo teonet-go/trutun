@@ -150,12 +150,14 @@ func (t *UdpTun) Udp(port int, params ...interface{}) (conn net.PacketConn, err 
 		}
 		fmt.Printf("ifce done %v\n", t.ifce)
 
-		buf := make([]byte, 1024)
+		buf := make([]byte, 2*1024)
 		for {
 			n, addr, err := conn.ReadFrom(buf)
 			if err != nil {
 				continue
 			}
+			fmt.Printf("got %d byte from %s\n", n, addr)
+
 			t.ifce.Write(buf[:n])
 			if t.addr == nil {
 				t.addr = &addr
