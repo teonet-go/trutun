@@ -158,13 +158,14 @@ func (t *TruTun) Interface(name string) (ifce *water.Interface, err error) {
 	// Read from interface and send to tru channels
 	go func() {
 		var frame ethernet.Frame
+		frame.Resize(1500)
 		for {
-			frame.Resize(1500)
+			// frame.Resize(1500)
 			n, err := ifce.Read([]byte(frame))
 			if err != nil {
 				log.Error.Fatal(err)
 			}
-			frame = frame[:n]
+			// frame = frame[:n]
 			log.Debug.Printf("Dst: %s\n", frame.Destination())
 			log.Debug.Printf("Src: %s\n", frame.Source())
 			log.Debug.Printf("Ethertype: % x\n", frame.Ethertype())
@@ -176,7 +177,7 @@ func (t *TruTun) Interface(name string) (ifce *water.Interface, err error) {
 			for t.tru == nil {
 				time.Sleep(10 * time.Millisecond)
 			}
-			t.tru.ForEachChannel(func(ch *tru.Channel) { ch.WriteTo(frame) })
+			t.tru.ForEachChannel(func(ch *tru.Channel) { ch.WriteTo(frame[:n]) })
 		}
 	}()
 
