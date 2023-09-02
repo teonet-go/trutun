@@ -31,12 +31,8 @@ var name = flag.String("name", appShor, "interface name")
 var port = flag.Int("p", 0, "local port number")
 var addr = flag.String("a", "", "remote address to connect to")
 var loglevel = flag.String("loglevel", "connect", "set log level")
-var logfilter = flag.String("logfilter", "", "set log filter")
-var stat = flag.Bool("stat", false, "print statistic")
-var hotkey = flag.Bool("hotkey", false, "start hotkey menu")
 var postcon = flag.String("pc", "", "post connection commands")
 var mtu = flag.Int("mtu", 1500, "set interface mtu")
-var datalen = flag.Int("datalen", 757, "set max data len in created packets, 0 - maximum UDP len")
 
 var log = teolog.New()
 
@@ -51,7 +47,7 @@ func main() {
 		return
 	}
 
-	log.SetLevel(loglevel)
+	log.SetLevel(*loglevel)
 
 	// Start UDP tunnel
 	_, err := NewUdpTun()
@@ -80,10 +76,7 @@ func NewUdpTun() (t *UdpTun, err error) {
 	}
 
 	// Create udp connection
-	t.conn, err = t.Udp(
-		*port, tru.Stat(*stat), tru.Hotkey(*hotkey), log, *loglevel,
-		teolog.Logfilter(*logfilter), tru.MaxDataLenType(*datalen),
-	)
+	t.conn, err = t.Udp(*port)
 	if err != nil {
 		err = errors.New("can't create tru, error: " + err.Error())
 		return
