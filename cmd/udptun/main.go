@@ -134,7 +134,7 @@ func (t *UdpTun) Udp(port int, params ...interface{}) (conn net.PacketConn, err 
 			if err != nil {
 				continue
 			}
-			fmt.Printf("got %d byte from %s\n", n, addr)
+			log.Debug.Printf("got %d byte from %s\n", n, addr)
 
 			t.ifce.Write(buf[:n])
 			if t.addr == nil {
@@ -188,10 +188,10 @@ func (t *UdpTun) Interface(name string) (ifce *water.Interface, err error) {
 
 			n, err = t.conn.WriteTo(frame[:n], *t.addr)
 			if err != nil {
-				fmt.Printf("write to %s error: %s\n", *t.addr, err)
+				log.Debug.Printf("write to %s error: %s\n", *t.addr, err)
 				continue
 			}
-			fmt.Printf("write %d byte to %s\n", n, *t.addr)
+			log.Debug.Printf("write %d byte to %s\n", n, *t.addr)
 		}
 	}()
 
